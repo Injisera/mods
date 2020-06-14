@@ -1,0 +1,13 @@
+{
+  "name": "construction-planner",
+  "version": "0.1.0",
+  "title": "Construction Planner",
+  "author": "Injisera",
+  "contact": "",
+  "homepage": "",
+  "dependencies": [
+    "base >= 0.18.0"
+  ],
+  "factorio_version": "0.18",
+  "description": "Your personal assistant for building complicated factories."
+}
