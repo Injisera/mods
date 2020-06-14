@@ -2,9 +2,6 @@
 local meth = require("mat")--matrix stuff
 global.system = {}
 
-------------------------
--- FOR TESTING!---------
-------------------------
 global.tab = global.tab or 2
 --remember which tab we were on
 
@@ -72,8 +69,6 @@ local function class_gui(event)
 
   function gui:add_system(event)
     local name = "Temp"
-    --missing 
-    --event.tick is here for debugging purposes
     table.insert(global.system,class_system(name))
     return name
   end
@@ -165,33 +160,25 @@ local function class_gui(event)
         table.insert(A,row)
       end
 
-      local B = {}
+      local b = {}
       local i = 1
       for key,val in pairs(global.system[global.tab-1].constraint) do
-        B[i] = val
+        b[i] = val
         i = i+1
       end
 
-      --Ax=B
-      --AtAx=AtB
-      --inv(AtA)AtAx = inv(AtA)AtB
-      --1*x = inv(AtA)AtB
+      --Ax=b
+      --AtAx=Atb
+      --inv(AtA)AtAx = inv(AtA)Atb
+      --1*x = inv(AtA)Atb
 
-      -- x = inv(AAt)AB (A is already pre-transposed)
-      -- (inv((AAt))(AB)) <-- order
+      -- x = inv(AAt)Ab (A is already pre-transposed)
+      -- (inv((AAt))(Ab)) <-- order
 
-      local part1 = meth.Ab(A,B)
-      local part2 = meth.AAt(A)
-      local part3 = meth.inv(part2)meth.Ab(A,B)
+      local part1 = meth.Ab(A,b)
       local part2 = meth.AAt(A)
       local part3 = meth.inv(part2)
       if part3 then --if we successfully calculated an inverse, let's continue
-        --[[
-        for _,val in pairs(part1) do
-          asd = asd+1
-          game.print(asd .. " - " .. val)
-        end
-        --]]
         local x = meth.Ab(part3,part1)
         for i,element in ipairs(x) do
           self.x[i].add({type="label",caption=round(element,3)})
@@ -200,7 +187,7 @@ local function class_gui(event)
     end
   end
 
-    function gui:add_recipe_row(recipe)
+  function gui:add_recipe_row(recipe)
 
     local output = self.recipe_table.add({type="flow",direction="horizontal"})
     local input = self.recipe_table.add({type="flow",direction="horizontal"})
@@ -220,7 +207,6 @@ local function class_gui(event)
         self:add_button_event({
           type="choose-elem-button",elem_type=item.type
         },function(event)
-          --destroy recipe
           if event.button == defines.mouse_button_type.right then
 
             global.system[global.tab-1].recipe[recipe.name]=nil
@@ -239,13 +225,13 @@ local function class_gui(event)
                 global.system[global.tab-1].constraint[const.name] = nil
               end
             end
-            --missing 
-            --fix the constraints, loose ends
             output.destroy()
             input.destroy()
             factory.destroy()
             beacon.destroy()
             x.destroy()
+          elseif event.button == defines.mouse_button_type.left then
+            game.print("LMB OI M8!")
           end
         end
         )
@@ -257,11 +243,7 @@ local function class_gui(event)
     end
 
     for _,item in pairs(recipe.ingredients) do
-      --input.add({type="sprite-button",sprite=item.type .. "/" .. item.name})
-
       local button
-
-      
       local filter = {
         {
           filter = "has-product-" .. item.type, --item/fluid
@@ -288,22 +270,30 @@ local function class_gui(event)
 
       local value
       for key,val in pairs(temp) do
+        --not sure how to get the first element in a table... 
+        -- very strange that I have to do this weird for thingy 
         value = val
-        break
+        break--yup, begin a for loop and break out of it straight away. Dumbest thing ever.
       end
 
       if recipes == 0 then --should NEVER occur
         game.print("There is no recipe that can craft your item O_o")
-        --hmm.. steam or water maybe?
       elseif recipes == 1 then--ONLY ONE RECIPE, just add that one! 
                 
         button = input.add(
           self:add_button_event({
             type="choose-elem-button",elem_type="recipe"
           },function(event)
-            --add recipe
             if event.button == defines.mouse_button_type.left then
               self:add_recipe(value)
+              --add the item you just clicked to the constraint list, you probably want to do that   
+              global.system[global.tab-1].constraint[item.name]=0          
+              self:destroy()
+              self:init()
+              --missing
+              --update the constraint list instead
+              --then do the calc
+
             end
           end
           )
@@ -318,6 +308,12 @@ local function class_gui(event)
           },function(event)
               if button.elem_value then 
                 self:add_recipe(game.recipe_prototypes[button.elem_value])
+
+                global.system[global.tab-1].constraint[item.name]=0
+                --missing
+                --update the constraint window
+                --calc
+
                 old_value = button.elem_value
               else --I just right clicked
                 button.elem_value = old_value
@@ -326,36 +322,16 @@ local function class_gui(event)
           )
         )
         button.elem_filters = filter
-        button.elem_value=nil
+        button.elem_value=value.name
+
         local num_value = button.add({type="label",caption=recipes})
         num_value.ignored_by_interaction=true
         num_value.style.font="count-font"
       end
     end
-
-
-
     
     local factories = {}
 
-    --[[
-    for _,building in pairs(self.assembling_machines) do
-      if building.crafting_categories 
-        and building.ingredient_count then
-        if building.crafting_categories[recipe.category] 
-          and building.ingredient_count >=#recipe.ingredients then
-          --game.print(building.crafting_categories[recipe.category])
-          table.insert(factories,building)
-        end
-      end
-    end
-    --]]
-
-    
-
-
-
-    
     local my_recipe = global.system[global.tab-1].recipe[recipe.name]
 
     --[
@@ -365,19 +341,10 @@ local function class_gui(event)
         self:add_choose_event({
           type="choose-elem-button",elem_type="entity"
         },function(event)
-            --dropdown list (MAKE A DARN FUNCTION OUT OF IT!)
             if factory_button.elem_value then 
               global.system[global.tab-1].recipe[recipe.name].factory.name=factory_button.elem_value
               self:calc()
-              --recalculate everything yo
             else
-              
-
-              --player.set_blueprint_entities()
-              --if player.cursor_stack ~= nil then --being an observer sets it to nil
-              --  player.cursor_stack.clear()
-              --end
-
               --I just rightclicked... put this shit in my hand as well!
               factory_button.elem_value = global.system[global.tab-1].recipe[recipe.name].factory.name
 
@@ -401,15 +368,11 @@ local function class_gui(event)
               --missing 
               --building should have correct recipe already set
 
-              
-              
-
               --player.cursor_stack.set_stack()
               --player.cursor_ghost.recipe = "inserter"
               --missing 
               --ghost in hand
             end
-            --self:add_recipe(game.recipe_prototypes[button.elem_value])
           end
         )
       )
@@ -420,14 +383,9 @@ local function class_gui(event)
           crafting_category = recipe.category
         },
       }
-      --[[
-      {
-        filter = "type", 
-        type = "assembling-machine"
-      },
-      --]]
+      
       factory_button.elem_value=my_recipe.factory.name
-      --factory_button.locked=true
+
 
       local f_modules = factory.add({type="flow",direction="horizontal"})
       if my_recipe.factory.module then
@@ -449,7 +407,6 @@ local function class_gui(event)
       game.print("error, missing factory or something yo")
     end
 
-    --]]
 
 
     if my_recipe.beacon then
@@ -473,7 +430,6 @@ local function class_gui(event)
 
       local function add_item_to_system(items)
         for _,item in pairs(items) do
-          --game.print(item.name)
           if global.system[global.tab-1].item[item.name] then
             global.system[global.tab-1].item[item.name]=global.system[global.tab-1].item[item.name]+1
           else 
@@ -494,12 +450,6 @@ local function class_gui(event)
         break
       end
 
-      -- WTF 
-      --GET FIRST ELEMENT OF TEMP
-      --AND FOKKEN PUT IT 
-      --WHERE THE FOKKEN OIL-REFINERY IS AT
-      --HOW FOKKEN HARD CAN IT BE?!
-
       global.system[global.tab-1].recipe[recipe.name]={
         factory={
           name=temp,--get the 1st machine that can craft this recipe
@@ -507,28 +457,7 @@ local function class_gui(event)
           }
         }
       }
-      --lalalalala
-      --[[
-      global.system[1].recipe["automation-science-pack"]={
-        factory={
-          name="assembling-machine-2",
-          module = {
-            "productivity-module-3",
-            "speed-module-3"
-          }
-        },
-        beacon={
-          {
-            name="beacon",
-            amount = 8,
-            module = {
-              "speed-module-3",
-              "speed-module-3"
-            }
-          }
-        }
-      }
-      --]]
+
 
       add_item_to_system(recipe.products)
       add_item_to_system(recipe.ingredients)
@@ -548,9 +477,7 @@ local function class_gui(event)
     end
     
     self.x = {}
-    --self.x["automation-science-pack"] => flow
     local window = self.tabs[global.tab-1].window
-    --window = window.add({type="flow",direction="vertical"})
     window = window.add({type="scroll-pane"})
     window.style.maximal_height=600
     window = window.add({type="flow",direction="horizontal"})
@@ -560,12 +487,7 @@ local function class_gui(event)
   
     local constrain_table = window.add({type="frame"})
     constrain_table = constrain_table.add({type="table",column_count=2, vertical_centering=false})
-    
-    
 
-    
-
-    
     self.recipe_table.add({type="sprite",sprite="item/iron-plate"})
 
     local input_window = self.recipe_table.add({type="flow",direction="horizontal"})
@@ -579,13 +501,21 @@ local function class_gui(event)
         local recipe_name = recipe_choose_button.elem_value
         if recipe_name then
           
-          local new_name = "[recipe=" .. recipe_name .. "]"-- .. recipe_name
+          local new_name = "[recipe=" .. recipe_name .. "]"
           global.system[global.tab-1].name = "[font=default-large]" .. new_name .. "[/font]"
-          --global.system[global.tab-1] = nil
-          --global.system[new_name].recipe[recipe_name] = {}
-          --self.tabs[global.tab-1].tab.caption = new_name
+          local recipe = game.recipe_prototypes[recipe_name]   
+          self:add_recipe(recipe)
           
-          self:add_recipe(game.recipe_prototypes[recipe_name])
+          local prod
+
+          for _,p in pairs(recipe.products) do
+            prod = p--I don't know how to get the first item in a table other than this. Bleh.
+            break
+          end
+          
+          global.system[global.tab-1].constraint[prod.name]=1--set it to be 1 item per second 
+
+          
           self:destroy()
           self:init()
         end
@@ -624,131 +554,99 @@ local function class_gui(event)
         --recipe doesn't exist -> stop everything, mark global.system[global.tab-1] as bad
       end
     end
-
-    if global.system[global.tab-1].item then --only here because of... bad previous version
-      --missing
-      
-      for key,_ in pairs(global.system[global.tab-1].item) do
-        local kind = "item"--figure out if it is an item or a fluid
-      
-        if game.fluid_prototypes[key] then
-          kind="fluid"
-        end
-        local button
-        local num_value
-
-        if global.system[global.tab-1].constraint[key] then
-          button = constrained.add(
-            self:add_button_event({
-                type="choose-elem-button",elem_type = kind
-              },function(event)
-                if event.button then
-                  if event.button == defines.mouse_button_type.right then
-                    global.system[global.tab-1].constraint[key]=nil
-
-                    
-                    self:destroy()
-                    self:init()
-                    --missing 
-                    --just update the constraint window
-                    --and then execute self:calc()
-                  elseif event.button == defines.mouse_button_type.left then
-                    local textfield
-                    textfield = button.add(
-                      self:add_text_event({
-                          type="textfield",
-                          text=global.system[global.tab-1].constraint[key],
-                          numeric=true,
-                          allow_decimal=true,
-                          allow_negative=true,
-                          clear_and_focus_on_right_click=true,
-
-                        },function(event)
-                          local val = tonumber(textfield.text)
-                          if not val then 
-                            val = 0
-                          end
-                          global.system[global.tab-1].constraint[key] = val
-                          textfield.destroy()
-                          num_value.caption = val
-                          self:calc()
-
-                          --missing
-                          --we should just call calc
-                          --we should just update the constraint window
-                        end
-                      )
-                    )
-                    textfield.style.width=36
-                    textfield.style.height=36
-                    
-                    textfield.focus()
-
-                    
-                    --add input window
-                  end
-                end
-              end
-            )
-          )
-        else
-          button = unconstrained.add(
-            self:add_button_event({
-                type="choose-elem-button",elem_type = kind
-              },function(event)
-                if event.button then
-                  if event.button == defines.mouse_button_type.right then
-                    --add constraint
-                    global.system[global.tab-1].constraint[key]=0
-                    self:destroy()
-                    self:init()
-                    --missing 
-                    --just update the constraint window
-                  elseif event.button == defines.mouse_button_type.left then
-
-                    --don't know if I want... this...
-                    --[[
-                    game.print("LMB YO")
-                    local recipe = game.recipe_prototypes[key]
-                    --make a list of all the recipes that has this item as a product
-                    --if # = 1, add that one
-                    --else, present a dropdown list
-                    if recipe then
-                      if not global.system[global.tab-1].recipe[key] then
-                        self:add_recipe(recipe)
-                        game.print("waka waka")
-                      end
-                    else
-                      game.print("DROPDOWN YOOOO!")
-                    end
-                    --should add their recipe
-                    --add input window
-                    --]]
-                  end
-
-
-                end
-              end
-            )
-          )
-          --unconstrained.add({type="button",caption = key .. " " .. global.system[global.tab-1].item[key]})
-        end
-        num_value = button.add({type="label"})
-        num_value.caption = global.system[global.tab-1].constraint[key]
-        num_value.ignored_by_interaction=true
-        num_value.style.font="count-font"
-        button.style.width=36
-        button.style.height=36
-        button.elem_value = key
-        button.locked=true
-        --sprite=kind .. key,number = global.system[global.tab-1].constraint[key]
+    
+    for key,_ in pairs(global.system[global.tab-1].item) do
+      local kind = "item"--figure out if it is an item or a fluid
+      if game.fluid_prototypes[key] then
+        kind="fluid"
       end
-      self:calc()--do all the magic! 
-      --missing
-      --calc should be split into parts
-      --one for CALCULATING 
-      --one for showing the calculations
+
+      local button
+      local num_value
+
+      if global.system[global.tab-1].constraint[key] then
+        button = constrained.add(
+          self:add_button_event({
+              type="choose-elem-button",elem_type = kind
+            },function(event)
+              if event.button then
+                if event.button == defines.mouse_button_type.right then
+                  global.system[global.tab-1].constraint[key]=nil
+
+                  
+                  self:destroy()
+                  self:init()
+                  --missing 
+                  --just update the constraint window instead of destroying + initializing the gui window
+                  --and then execute self:calc()
+                elseif event.button == defines.mouse_button_type.left then
+                  local textfield
+                  textfield = button.add(
+                    self:add_text_event({
+                        type="textfield",
+                        text=global.system[global.tab-1].constraint[key],
+                        numeric=true,
+                        allow_decimal=true,
+                        allow_negative=true,
+                        clear_and_focus_on_right_click=true,
+
+                      },function(event)
+                        local val = tonumber(textfield.text)
+                        if not val then 
+                          val = 0
+                        end
+                        global.system[global.tab-1].constraint[key] = val
+                        textfield.destroy()
+                        num_value.caption = val
+                        self:calc()
+
+                        --missing
+                        --we should just update the constraint window
+                        --we should just call calc
+                      end
+                    )
+                  )
+                  textfield.style.width=32
+                  textfield.style.height=32
+                  textfield.focus()
+                end
+              end
+            end
+          )
+        )
+        
+      else
+        button = unconstrained.add(
+          self:add_button_event({
+              type="choose-elem-button",elem_type = kind
+            },function(event)
+              if event.button then
+                if event.button == defines.mouse_button_type.right then
+                  global.system[global.tab-1].constraint[key]=0
+                  self:destroy()
+                  self:init()
+                  --missing 
+                  --just update the constraint window
+                end
+              end
+            end
+          )
+        )
+      end
+      num_value = button.add({type="label"})
+      num_value.caption = global.system[global.tab-1].constraint[key]
+      num_value.ignored_by_interaction=true
+      num_value.style.font="count-font"
+      button.style.width=36
+      button.style.height=36
+      button.elem_value = key
+      button.locked=true
     end
+    self:calc()--do all the magic! 
+    --missing
+    --calc should be split into parts...
+    --one for CALCULATING 
+    --one for showing the calculations
   end
 
   function gui:add_system_tab(name)
@@ -758,20 +656,16 @@ local function class_gui(event)
       self:add_button_event({
         --missing i tooltip icon
         type="tab", caption=name,tooltip = "LMB = Select\nLMB + Shift = Rename\nLMB + Ctrl = Copy\nRMB = Remove tab"
-        --[img=virtual-signal/signal-info] 
+        --[img=virtual-signal/signal-info] = i
       },function(event)
         if event.button then
           if event.button == defines.mouse_button_type.left then
             global.tab = self.tab.selected_tab_index
             if event.control then
-              --game.print("LMB + Ctrl")
-              --table.insert(global.system,global.system[global.tab-1])
               global.system[#global.system+1]=copy_object(global.system[global.tab-1])
               global.tab=#global.system+1
               self:destroy()
               self:init()
-              --missing (need a deep copy, we're just referencing now)
-              --bug
             end
             self:populate_system_tab()
           elseif event.button == defines.mouse_button_type.right then
@@ -808,7 +702,7 @@ local function class_gui(event)
   end
   
   function gui:init()
-    if player.gui.screen["constructor_tool_gui"] then --if the gui, get our handle set correctly
+    if player.gui.screen["constructor_tool_gui"] then
       self.window = player.gui.screen["constructor_tool_gui"].destroy()
     end --if it exists... beforehand, due to an earlier save/load then just destroy it
 
@@ -847,8 +741,7 @@ local function class_gui(event)
             global.tab = #global.system+1
             self:destroy()
             self:init()
-            --self:populate_system_tab()--make a system and then populate the tab with it
-          else --if I didn't left click... then don't take me to the add tab
+          else
             self.tab.selected_tab_index = global.tab
           end 
         end
@@ -939,15 +832,8 @@ local function on_gui_elem_changed(event)
   end
 end
 
---script.on_init(on_init)
---script.on_event(defines.events.on_player_created,on_player_created)
 script.on_event("construction-planner-gui-hotkey", on_gui_hotkey)
 script.on_event(defines.events.on_gui_location_changed,on_gui_location_changed)
 script.on_event(defines.events.on_gui_click,on_gui_button_click)
 script.on_event(defines.events.on_gui_elem_changed,on_gui_elem_changed)
 script.on_event(defines.events.on_gui_confirmed,on_gui_text_confirmed)
---script.on_event(defines.events.on_gui_confirmed,on_gui_confirmed)
---script.on_event(defines.events.on_gui_selected_tab_changed,on_gui_selected_tab_changed)
-
-
---return "construction-planner-" .. button
