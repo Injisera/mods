@@ -253,12 +253,15 @@ local function class_gui(event)
               name = item.name
             }
           }
-        },{
+        }--[[,{
+          --Pyanodon has a category called handcrafting.. 
+          --vanilla does not... not sure how to check if there is a recipe category called handcrafting.. whatever
+
           filter = "category",
           category ="handcrafting",
           mode = "and",
           invert = true
-        }
+        }--]]
       }
 
       local temp = game.get_filtered_recipe_prototypes(filter)
@@ -276,8 +279,8 @@ local function class_gui(event)
         break--yup, begin a for loop and break out of it straight away. Dumbest thing ever.
       end
 
-      if recipes == 0 then --should NEVER occur
-        game.print("There is no recipe that can craft your item O_o")
+      if recipes == 0 then 
+        --might occur for iron plates --> there is usually no recipe to make iron ore
       elseif recipes == 1 then--ONLY ONE RECIPE, just add that one! 
                 
         button = input.add(
@@ -523,6 +526,10 @@ local function class_gui(event)
       )
     )
 
+    --[[
+      --Pyanodon has a category called handcrafting.. 
+      --vanilla does not... not sure how to check if there is a recipe category called handcrafting.. whatever
+
     recipe_choose_button.elem_filters = {
       {
         filter = "category",
@@ -530,7 +537,7 @@ local function class_gui(event)
         invert = true
       }
     }
-
+    --]]
     self.recipe_table.add({type="sprite",sprite="entity/assembling-machine-1"})
     self.recipe_table.add({type="sprite",sprite="entity/beacon"})
     self.recipe_table.add({type="sprite",sprite="entity/programmable-speaker"})
@@ -543,10 +550,6 @@ local function class_gui(event)
     
     for key,recipe in pairs(global.system[global.tab-1].recipe) do
 
-
-
-
-      
       if game.recipe_prototypes[key] then
         self:add_recipe_row(game.recipe_prototypes[key])
       else
