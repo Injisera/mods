@@ -101,14 +101,14 @@ end
 
 
 
-function matrix.AB(A,B)--A transpose times B
-  local output = {} -- make a new matrix
-  local rows = #A       --get rows of A, our new height
-  local length = #B     --get common length, #A[1] = #B
-  local columns = #B[1] --get columns of B, our new width
+function matrix.AB(A,B)   --A times B
+  local output = {}       -- make a new matrix
+  local rows = #A         --get rows of A, our new height
+  local length = #B       --get common length, #A[1] = #B
+  local columns = #B[1]   --get columns of B, our new width
   
   for n=1,rows do
-    output[n] = {} -- make it a 2D array
+    output[n] = {}        --make it a 2D array
     for m=1,columns do
       local sum = 0
       for i=1,length do
@@ -120,10 +120,10 @@ function matrix.AB(A,B)--A transpose times B
   return output
 end
 
-function matrix.Ab(A,b)--A times b (matrix * vector)
-  local output = {} -- make a new matrix
-  local rows = #A       --get rows of A, our new height
-  local length = #b     --get common length, #A[1] = #B
+function matrix.Ab(A,b)   --A times b (matrix * vector)
+  local output = {}       --make a new matrix
+  local rows = #A         --get rows of A, our new height
+  local length = #b       --get common length, #A[1] = #b
   for n=1,rows do
     local sum = 0
     for m=1,length do
@@ -134,18 +134,18 @@ function matrix.Ab(A,b)--A times b (matrix * vector)
   return output
 end
 
-function matrix.AtB(A,B)--A times B, assume input is safe to use, there are no safety checks in here!
-  local output = {} -- make a new matrix
-  local rows = #A[1]    --get rows of A, our new height, first row that is differemt from AB
-  local length = #B     --get common length, #A[1] = #B
-  local columns = #B[1] --get columns of B, our new width
+function matrix.AtB(A,B)  --A transpose times B, assume input is safe to use, there are no safety checks in here!
+  local output = {}       --make a new matrix
+  local rows = #A[1]      --get rows of A, our new height, first row that is differemt from AB
+  local length = #B       --get common length, #A[1] = #B
+  local columns = #B[1]   --get columns of B, our new width
   
   for n=1,rows do
-    output[n] = {} -- make it a 2D array
+    output[n] = {}        --make it a 2D array
     for m=1,columns do
       local sum = 0
       for i=1,length do
-        sum = sum + A[i][n]*B[i][m]--second row that is different from AB
+        sum = sum + A[i][n]*B[i][m]
       end
       output[n][m]=sum
     end
@@ -153,18 +153,18 @@ function matrix.AtB(A,B)--A times B, assume input is safe to use, there are no s
   return output
 end
 
-function matrix.ABt(A,B)--A times B transpose
-  local output = {} -- make a new matrix
-  local rows = #A[1]    --get rows of A, our new height, first row that is differemt from AB
-  local length = #B     --get common length, #A[1] = #B
-  local columns = #B[1] --get columns of B, our new width
+function matrix.ABt(A,B)    --A times B transpose
+  local output = {}         -- make a new matrix
+  local rows = #A[1]        --get rows of A, our new height, first row that is differemt from AB
+  local length = #B         --get common length, #A[1] = #B
+  local columns = #B[1]     --get columns of B, our new width
   
   for n=1,rows do
-    output[n] = {} -- make it a 2D array
+    output[n] = {}          --make it a 2D array
     for m=1,columns do
       local sum = 0
       for i=1,length do
-        sum = sum + A[n][i]*B[m][i]--second row that is different from AB
+        sum = sum + A[n][i]*B[m][i]
       end
       output[n][m]=sum
     end
@@ -172,16 +172,16 @@ function matrix.ABt(A,B)--A times B transpose
   return output
 end
 
-function matrix.AAt(A)--A times B transpose
-  local output = {} -- make a new matrix
-  local rows = #A    --get rows of A, our new height, first row that is differemt from AB
+function matrix.AAt(A)    --A times B transpose
+  local output = {}       --make a new matrix
+  local rows = #A         --get rows of A, our new height, first row that is differemt from AB
   local length = #A[1]
   for n=1,rows do
-    output[n] = {} -- make it a 2D array
+    output[n] = {}        --make it a 2D array
     for m=1,rows do
       local sum = 0
       for i=1,length do
-        sum = sum + A[n][i]*A[m][i]--second row that is different from AB
+        sum = sum + A[n][i]*A[m][i]
       end
       output[n][m]=sum
     end
@@ -189,32 +189,16 @@ function matrix.AAt(A)--A times B transpose
   return output
 end
 
---[[
-
-
-local debug_A' = {
-  {45.0/5.0,    0,               0},
-  {55.0/5.0,    45.0/5.0,        25.0/5.0},
-}
-
-local debug_A = {
-  {45.0/5.0,    55.0/5.0},
-  {0,           45.0/5.0},
-  {0,           25.0/5.0}
-}
---]]
-
-
-function matrix.AtA(A)--A times B transpose
-  local output = {} -- make a new matrix
-  local rows = #A[1]     --get common length, #A[1] = #B
+function matrix.AtA(A)    --A transpose times A
+  local output = {}       --make a new matrix
+  local rows = #A[1]      --get common length
   local length = #A
   for n=1,rows do
-    output[n] = {} -- make it a 2D array
+    output[n] = {}        --make it a 2D array
     for m=1,rows do
       local sum = 0
       for i=1,length do
-        sum = sum + A[i][n]*A[i][m]--second row that is different from AB
+        sum = sum + A[i][n]*A[i][m]
       end
       output[n][m]=sum
     end
@@ -223,9 +207,9 @@ function matrix.AtA(A)--A times B transpose
 end
 
 
-function matrix.Atb(A,b)--A transpose matrix times vector b
-  local output = {} -- make a new matrix
-  local rows = #A[1]    --get rows of A, our new height
+function matrix.Atb(A,b)    --A transpose matrix times vector b
+  local output = {}         --make a new matrix
+  local rows = #A[1]        --get rows of A, our new height
   for n=1,rows do
     local sum = 0
     for m=1,rows do

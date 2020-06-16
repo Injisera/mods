@@ -251,9 +251,11 @@ local function class_gui(event)
             {
               filter = "name", 
               name = item.name
-            }
+            }--I should make sure the amount of output is at least something... fokken voids
           }
-        }--[[,{
+        }--after I get these... I need to filter again for the main product? wtf? This is so dumb
+        
+        --[[,{
           --Pyanodon has a category called handcrafting.. 
           --vanilla does not... not sure how to check if there is a recipe category called handcrafting.. whatever
 
@@ -384,7 +386,7 @@ local function class_gui(event)
         {
           filter = "crafting-category",
           crafting_category = recipe.category
-        },
+        }
       }
       
       factory_button.elem_value=my_recipe.factory.name
@@ -503,7 +505,6 @@ local function class_gui(event)
       },function(event)
         local recipe_name = recipe_choose_button.elem_value
         if recipe_name then
-          
           local new_name = "[recipe=" .. recipe_name .. "]"
           global.system[global.tab-1].name = "[font=default-large]" .. new_name .. "[/font]"
           local recipe = game.recipe_prototypes[recipe_name]   
@@ -526,7 +527,13 @@ local function class_gui(event)
       )
     )
 
-    --[[
+    recipe_choose_button.elem_filters = {
+      {
+        filter = "enabled"--huh.. weird, I must have SOME kind of filter to show the void recipes. Strange.
+      }
+    }
+
+    --[[a
       --Pyanodon has a category called handcrafting.. 
       --vanilla does not... not sure how to check if there is a recipe category called handcrafting.. whatever
 
