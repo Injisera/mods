@@ -219,6 +219,90 @@ local function class_gui(event)
     end
   end
 
+
+  function gui:icon_add_recipe(item,frame,filter,callback)
+      
+    local button
+    local temp = game.get_filtered_recipe_prototypes(filter)
+
+    local recipes = 0
+    for key,val in pairs(temp) do
+      recipes = recipes + 1
+    end
+
+    local value
+    for key,val in pairs(temp) do
+      --not sure how to get the first element in a table... 
+      -- very strange that I have to do this weird for thingy 
+      value = val
+      break--yup, begin a for loop and break out of it straight away. Dumbest thing ever.
+    end
+
+    local row_recipe_add
+
+    if recipes == 0 then 
+      if callback then row_recipe_add = callback end
+      --might occur for iron plates --> there is usually no recipe to make iron ore
+    elseif recipes == 1 then--ONLY ONE RECIPE, just add that one! 
+      row_recipe_add = function(event)
+        if event.button == defines.mouse_button_type.left then
+          game.print("roi")
+          self:add_recipe(value)
+          --add the item you just clicked to the constraint list, you probably want to do that   
+          global.system[global.tab-1].constraint[item.name]=0          
+          self:destroy()
+          self:init()
+          --missing
+          --update the constraint list instead
+          --then do the calc
+
+        end
+        if callback then callback(event) end
+      end
+    else
+      row_recipe_add = function(event)
+        if event.button == defines.mouse_button_type.left then
+          game.print("moi")
+
+          local recipe_list = {}
+          for key,val in pairs(temp) do
+            table.insert(recipe_list,{type="recipe",name=val.name})
+          end
+
+          self:choose_elem_window_bullshit(
+            recipe_list,math.min(math.ceil(math.sqrt(recipes)),20),function (event,name)
+
+              if event.button == defines.mouse_button_type.left then --only add the recipe if I left click
+                self:add_recipe(game.recipe_prototypes[name])
+                global.system[global.tab-1].constraint[item.name]=0
+                
+                self:destroy()
+                self:init()
+              end
+              --missing
+              --update the constraint list instead
+              --then do the calc
+          end)
+        end
+        if callback then callback(event) end
+      end
+    end
+
+    button = frame.add(
+      self:add_button_event({
+        type="choose-elem-button",elem_type=item.type
+      },row_recipe_add)
+    )
+    --button.elem_filters = filter
+    button.locked=true
+    button.elem_value=item.name
+
+    local num_value = button.add({type="label",caption=recipes})
+    num_value.ignored_by_interaction=true
+    num_value.style.font="count-font"
+    
+  end
+
   function gui:add_recipe_row(recipe)
 
    
@@ -233,16 +317,21 @@ local function class_gui(event)
     --x = B/A
 
 
-    --game.print(type(temp_system_items))
-
     for _,item in pairs(recipe.products) do
-      local button
-      button = output.add(
-        self:add_button_event({
-          type="choose-elem-button",elem_type=item.type
-        },function(event)
+      self:icon_add_recipe(item,output,
+        {
+          {
+            filter = "has-ingredient-" .. item.type, --item/fluid
+            elem_filters = {
+              {
+                filter = "name", 
+                name = item.name
+              }
+            }
+          }
+        },
+        function (event)
           if event.button == defines.mouse_button_type.right then
-
             global.system[global.tab-1].recipe[recipe.name]=nil
             for _,const in pairs(recipe.products) do
               global.system[global.tab-1].item[const.name]=global.system[global.tab-1].item[const.name]-1
@@ -264,120 +353,67 @@ local function class_gui(event)
             factory.destroy()
             beacon.destroy()
             x.destroy()
+          end
+        end
+      )
+    end
+
+    --game.print(type(temp_system_items))
+    --[[
+    for _,item in pairs(recipe.products) do
+      local button
+      button = output.add(
+        self:add_button_event({
+          type="choose-elem-button",elem_type=item.type
+        },function(event)
+          if event.button == defines.mouse_button_type.right then
+            global.system[global.tab-1].recipe[recipe.name]=nil
+            for _,const in pairs(recipe.products) do
+              global.system[global.tab-1].item[const.name]=global.system[global.tab-1].item[const.name]-1
+              if global.system[global.tab-1].item[const.name] == 0 then
+                global.system[global.tab-1].item[const.name] = nil
+                global.system[global.tab-1].constraint[const.name] = nil
+              end
+            end
+
+            for _,const in pairs(recipe.ingredients) do
+              global.system[global.tab-1].item[const.name]=global.system[global.tab-1].item[const.name]-1
+              if global.system[global.tab-1].item[const.name] == 0 then
+                global.system[global.tab-1].item[const.name] = nil
+                global.system[global.tab-1].constraint[const.name] = nil
+              end
+            end
+            output.destroy()
+            input.destroy()
+            factory.destroy()
+            beacon.destroy()
+            x.destroy()
+            
           elseif event.button == defines.mouse_button_type.left then
             game.print("LMB OI M8!")
           end
         end
         )
       )
-
       button.elem_value=item.name
       button.locked=true
-
     end
+    --]]
 
     for _,item in pairs(recipe.ingredients) do
-      local button
-      local filter = {
+      self:icon_add_recipe(item,input,
         {
-          filter = "has-product-" .. item.type, --item/fluid
-          elem_filters = {
-            {
-              filter = "name", 
-              name = item.name
-            }--I should make sure the amount of output is at least something... fokken voids
+          {
+            filter = "has-product-" .. item.type, --item/fluid
+            elem_filters = {
+              {
+                filter = "name", 
+                name = item.name
+              }
+            }
           }
-
         }
-        
-        --after I get these... I need to filter again for the main product? wtf? This is so dumb
-        
-        --[[,{
-          --Pyanodon has a category called handcrafting.. 
-          --vanilla does not... not sure how to check if there is a recipe category called handcrafting.. whatever
-
-          filter = "category",
-          category ="handcrafting",
-          mode = "and",
-          invert = true
-        }--]]
-      }
-
-      local temp = game.get_filtered_recipe_prototypes(filter)
-
-      local recipes = 0
-      for key,val in pairs(temp) do
-        recipes = recipes + 1
-      end
-
-      local value
-      for key,val in pairs(temp) do
-        --not sure how to get the first element in a table... 
-        -- very strange that I have to do this weird for thingy 
-        value = val
-        break--yup, begin a for loop and break out of it straight away. Dumbest thing ever.
-      end
-
-      local row_recipe_add
-
-      if recipes == 0 then 
-        --might occur for iron plates --> there is usually no recipe to make iron ore
-      elseif recipes == 1 then--ONLY ONE RECIPE, just add that one! 
-        row_recipe_add = function(event)
-          if event.button == defines.mouse_button_type.left then
-            --game.print("oi")
-            self:add_recipe(value)
-            --add the item you just clicked to the constraint list, you probably want to do that   
-            global.system[global.tab-1].constraint[item.name]=0          
-            self:destroy()
-            self:init()
-            --missing
-            --update the constraint list instead
-            --then do the calc
-  
-          end
-        end
-      else
-        row_recipe_add = function(event)
-          if event.button == defines.mouse_button_type.left then
-            --game.print("moi")
-
-            local recipe_list = {}
-            for key,val in pairs(temp) do
-              table.insert(recipe_list,{type="recipe",name=val.name})
-            end
-
-            self:choose_elem_window_bullshit(
-              recipe_list,math.ceil(math.sqrt(recipes)),function (event,name)
-
-                if event.button == defines.mouse_button_type.left then --only add the recipe if I left click
-                  self:add_recipe(game.recipe_prototypes[name])
-                  global.system[global.tab-1].constraint[item.name]=0
-                  
-                  self:destroy()
-                  self:init()
-                end
-                --missing
-                --update the constraint list instead
-                --then do the calc
-            end)
-          end
-        end
-      end
-
-      button = input.add(
-        self:add_button_event({
-          type="choose-elem-button",elem_type=item.type
-        },row_recipe_add)
       )
-      --button.elem_filters = filter
-      button.locked=true
-      button.elem_value=item.name
-
-      local num_value = button.add({type="label",caption=recipes})
-      num_value.ignored_by_interaction=true
-      num_value.style.font="count-font"
-      
     end
     
     local factories = {}
@@ -554,7 +590,7 @@ local function class_gui(event)
       },function(event)
         local recipe_name = recipe_choose_button.elem_value
         if recipe_name then
-          --game.print("koi")
+          game.print("koi")
           local new_name = "[recipe=" .. recipe_name .. "]"
           global.system[global.tab-1].name = "[font=default-large]" .. new_name .. "[/font]"
           local recipe = game.recipe_prototypes[recipe_name]   
@@ -592,18 +628,6 @@ local function class_gui(event)
       
     }
 
-    --[[a
-      --Pyanodon has a category called handcrafting.. 
-      --vanilla does not... not sure how to check if there is a recipe category called handcrafting.. whatever
-
-    recipe_choose_button.elem_filters = {
-      {
-        filter = "category",
-        category ="handcrafting",
-        invert = true
-      }
-    }
-    --]]
     self.recipe_table.add({type="sprite",sprite="entity/assembling-machine-1"})
     self.recipe_table.add({type="sprite",sprite="entity/beacon"})
     self.recipe_table.add({type="sprite",sprite="entity/programmable-speaker"})
