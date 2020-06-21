@@ -65,6 +65,38 @@ local function class_gui(event)
     return self:event_func(self.button_event,element,func)
   end
 
+  function gui:choose_elem_window_bullshit(list_of_shit_I_fucking_want_want_to_show,cols,callback)
+
+    if player.gui.screen["constructor_tool_bullshit"] then
+      player.gui.screen["constructor_tool_bullshit"].destroy()
+    end --if it exists... beforehand, due to an earlier save/load then just destroy it
+
+    local window = player.gui.screen.add({
+      type="frame", 
+      direction = "vertical", 
+      name = "constructor_tool_bullshit",
+      caption = "Choose"
+    })
+    window.location = global.location--close enough.... fucking bullshit
+    local pane = window.add({type="scroll-pane"})
+    pane.style.maximal_height=600
+    local list = pane.add({type="table", column_count=cols})
+
+    for key,item in pairs(list_of_shit_I_fucking_want_want_to_show) do
+      local button = list.add(
+        self:add_button_event({
+          type="choose-elem-button",elem_type=item.type
+        },function(event)
+          callback(event,item.name)
+          window.destroy()
+        end
+        )
+      )
+      button.locked=true
+      button.elem_value=item.name
+    end
+  end
+
 
 
   function gui:add_system(event)
@@ -189,6 +221,8 @@ local function class_gui(event)
 
   function gui:add_recipe_row(recipe)
 
+   
+
     local output = self.recipe_table.add({type="flow",direction="horizontal"})
     local input = self.recipe_table.add({type="flow",direction="horizontal"})
     local factory = self.recipe_table.add({type="flow",direction="horizontal"})
@@ -253,7 +287,10 @@ local function class_gui(event)
               name = item.name
             }--I should make sure the amount of output is at least something... fokken voids
           }
-        }--after I get these... I need to filter again for the main product? wtf? This is so dumb
+
+        }
+        
+        --after I get these... I need to filter again for the main product? wtf? This is so dumb
         
         --[[,{
           --Pyanodon has a category called handcrafting.. 
@@ -281,58 +318,66 @@ local function class_gui(event)
         break--yup, begin a for loop and break out of it straight away. Dumbest thing ever.
       end
 
+      local row_recipe_add
+
       if recipes == 0 then 
         --might occur for iron plates --> there is usually no recipe to make iron ore
       elseif recipes == 1 then--ONLY ONE RECIPE, just add that one! 
-                
-        button = input.add(
-          self:add_button_event({
-            type="choose-elem-button",elem_type="recipe"
-          },function(event)
-            if event.button == defines.mouse_button_type.left then
-              self:add_recipe(value)
-              --add the item you just clicked to the constraint list, you probably want to do that   
-              global.system[global.tab-1].constraint[item.name]=0          
-              self:destroy()
-              self:init()
-              --missing
-              --update the constraint list instead
-              --then do the calc
-
-            end
+        row_recipe_add = function(event)
+          if event.button == defines.mouse_button_type.left then
+            --game.print("oi")
+            self:add_recipe(value)
+            --add the item you just clicked to the constraint list, you probably want to do that   
+            global.system[global.tab-1].constraint[item.name]=0          
+            self:destroy()
+            self:init()
+            --missing
+            --update the constraint list instead
+            --then do the calc
+  
           end
-          )
-        )
-        button.elem_value=value.name
-        button.locked=true
+        end
       else
-        local old_value = value.name
-        button = input.add(
-          self:add_choose_event({
-            type="choose-elem-button",elem_type="recipe"
-          },function(event)
-              if button.elem_value then 
-                self:add_recipe(game.recipe_prototypes[button.elem_value])
+        row_recipe_add = function(event)
+          if event.button == defines.mouse_button_type.left then
+            --game.print("moi")
 
-                global.system[global.tab-1].constraint[item.name]=0
+            local recipe_list = {}
+            for key,val in pairs(temp) do
+              table.insert(recipe_list,{type="recipe",name=val.name})
+            end
+
+            self:choose_elem_window_bullshit(
+              recipe_list,math.ceil(math.sqrt(recipes)),function (event,name)
+
+                if event.button == defines.mouse_button_type.left then --only add the recipe if I left click
+                  self:add_recipe(game.recipe_prototypes[name])
+                  global.system[global.tab-1].constraint[item.name]=0
+                  
+                  self:destroy()
+                  self:init()
+                end
                 --missing
-                --update the constraint window
-                --calc
-
-                old_value = button.elem_value
-              else --I just right clicked
-                button.elem_value = old_value
-              end
+                --update the constraint list instead
+                --then do the calc
+            end)
           end
-          )
-        )
-        button.elem_filters = filter
-        button.elem_value=value.name
-
-        local num_value = button.add({type="label",caption=recipes})
-        num_value.ignored_by_interaction=true
-        num_value.style.font="count-font"
+        end
       end
+
+      button = input.add(
+        self:add_button_event({
+          type="choose-elem-button",elem_type=item.type
+        },row_recipe_add)
+      )
+      --button.elem_filters = filter
+      button.locked=true
+      button.elem_value=item.name
+
+      local num_value = button.add({type="label",caption=recipes})
+      num_value.ignored_by_interaction=true
+      num_value.style.font="count-font"
+      
     end
     
     local factories = {}
@@ -388,7 +433,6 @@ local function class_gui(event)
           crafting_category = recipe.category
         }
       }
-      
       factory_button.elem_value=my_recipe.factory.name
 
 
@@ -431,17 +475,8 @@ local function class_gui(event)
 
   function gui:add_recipe(recipe) 
 
+   
     if not global.system[global.tab-1].recipe[recipe.name] then
-
-      local function add_item_to_system(items)
-        for _,item in pairs(items) do
-          if global.system[global.tab-1].item[item.name] then
-            global.system[global.tab-1].item[item.name]=global.system[global.tab-1].item[item.name]+1
-          else 
-            global.system[global.tab-1].item[item.name] = 1
-          end
-        end
-      end
 
       local temp = game.get_filtered_entity_prototypes({
         {
@@ -455,6 +490,21 @@ local function class_gui(event)
         break
       end
 
+      if type(temp) ~= "string" then return nil end
+      --In case you try to add some weird crap, like an item that can only be handcrafted
+
+      local function add_item_to_system(items)
+        for _,item in pairs(items) do
+          if global.system[global.tab-1].item[item.name] then
+            global.system[global.tab-1].item[item.name]=global.system[global.tab-1].item[item.name]+1
+          else 
+            global.system[global.tab-1].item[item.name] = 1
+          end
+        end
+      end
+
+
+
       global.system[global.tab-1].recipe[recipe.name]={
         factory={
           name=temp,--get the 1st machine that can craft this recipe
@@ -462,7 +512,6 @@ local function class_gui(event)
           }
         }
       }
-
 
       add_item_to_system(recipe.products)
       add_item_to_system(recipe.ingredients)
@@ -505,6 +554,7 @@ local function class_gui(event)
       },function(event)
         local recipe_name = recipe_choose_button.elem_value
         if recipe_name then
+          --game.print("koi")
           local new_name = "[recipe=" .. recipe_name .. "]"
           global.system[global.tab-1].name = "[font=default-large]" .. new_name .. "[/font]"
           local recipe = game.recipe_prototypes[recipe_name]   
@@ -527,10 +577,19 @@ local function class_gui(event)
       )
     )
 
+    --so fucking dumb that I have to filter for enabled and not enabled to get everything
+    --crazy dumb system
+
     recipe_choose_button.elem_filters = {
       {
         filter = "enabled"--huh.. weird, I must have SOME kind of filter to show the void recipes. Strange.
+      },
+      {
+        filter = "enabled",
+        mode="or",
+        invert=true
       }
+      
     }
 
     --[[a
@@ -549,8 +608,8 @@ local function class_gui(event)
     self.recipe_table.add({type="sprite",sprite="entity/beacon"})
     self.recipe_table.add({type="sprite",sprite="entity/programmable-speaker"})
 
-    constrain_table.add({type="sprite",sprite="constrained", size = 32})
-    constrain_table.add({type="sprite",sprite="unconstrained", size = 32})
+    constrain_table.add({type="sprite",sprite="constrained"})
+    constrain_table.add({type="sprite",sprite="unconstrained"})
 
     local constrained = constrain_table.add({type="flow",direction="vertical"})
     local unconstrained = constrain_table.add({type="flow",direction="vertical"})
@@ -647,8 +706,8 @@ local function class_gui(event)
       num_value.caption = global.system[global.tab-1].constraint[key]
       num_value.ignored_by_interaction=true
       num_value.style.font="count-font"
-      button.style.width=36
-      button.style.height=36
+      button.style.width=40
+      button.style.height=40
       button.elem_value = key
       button.locked=true
     end
@@ -665,19 +724,21 @@ local function class_gui(event)
     tab = self.tab.add(
       self:add_button_event({
         --missing i tooltip icon
-        type="tab", caption=name,tooltip = "LMB = Select\nLMB + Shift = Rename\nLMB + Ctrl = Copy\nRMB = Remove tab"
+        type="tab", caption=name,tooltip = "LMB = Select\nLMB or RMB + Ctrl = Copy\nRMB = Remove tab"
         --[img=virtual-signal/signal-info] = i
       },function(event)
         if event.button then
-          if event.button == defines.mouse_button_type.left then
+
+          if event.control then
             global.tab = self.tab.selected_tab_index
-            if event.control then
-              global.system[#global.system+1]=copy_object(global.system[global.tab-1])
-              global.tab=#global.system+1
-              self:destroy()
-              self:init()
-            end
-            self:populate_system_tab()
+            global.system[#global.system+1]=copy_object(global.system[global.tab-1])
+            global.tab=#global.system+1
+            self:destroy()
+            self:init()
+          elseif event.button == defines.mouse_button_type.left then
+            global.tab = self.tab.selected_tab_index
+            self:destroy()
+            self:init()
           elseif event.button == defines.mouse_button_type.right then
             
             for i=self.tab.selected_tab_index,#global.system do
@@ -697,6 +758,7 @@ local function class_gui(event)
             if not next(global.system) then
               self:add_system(event)
             end
+
             self:destroy()
             self:init()
           end
@@ -713,7 +775,7 @@ local function class_gui(event)
   
   function gui:init()
     if player.gui.screen["constructor_tool_gui"] then
-      self.window = player.gui.screen["constructor_tool_gui"].destroy()
+      player.gui.screen["constructor_tool_gui"].destroy()
     end --if it exists... beforehand, due to an earlier save/load then just destroy it
 
 
