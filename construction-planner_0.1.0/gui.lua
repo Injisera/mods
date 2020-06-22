@@ -272,7 +272,11 @@ local function class_gui(event)
             --update the constraint list instead
             --then do the calc
           end
+<<<<<<< HEAD
           if callback then callback(event) end
+=======
+          --if callback then callback(event) end
+>>>>>>> 59a05175c9102d3093c6efa848aa4ac8cfc8aa5b
         end
         )
       )
@@ -300,7 +304,11 @@ local function class_gui(event)
             )
             
           end
+<<<<<<< HEAD
           if callback then callback(event) end
+=======
+          --if callback then callback(event) end
+>>>>>>> 59a05175c9102d3093c6efa848aa4ac8cfc8aa5b
         end
         )
       )
