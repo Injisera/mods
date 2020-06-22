@@ -225,6 +225,13 @@ local function class_gui(event)
     local button
     local temp = game.get_filtered_recipe_prototypes(filter)
 
+    local recipe_list = {}
+    local i = 0
+    for key,val in pairs(temp) do
+      i = i + 1
+      recipe_list[i] = {type="recipe",name=val.name}
+    end
+
     local recipes = 0
     for key,val in pairs(temp) do
       recipes = recipes + 1
@@ -238,69 +245,74 @@ local function class_gui(event)
       break--yup, begin a for loop and break out of it straight away. Dumbest thing ever.
     end
 
-    local row_recipe_add
-
     if recipes == 0 then 
-      if callback then row_recipe_add = callback end
+      button = frame.add(
+        self:add_button_event({
+          type="choose-elem-button",elem_type=item.type
+        },function(event)
+          if callback then callback(event) end
+        end)
+      )
+
       --might occur for iron plates --> there is usually no recipe to make iron ore
     elseif recipes == 1 then--ONLY ONE RECIPE, just add that one! 
-      row_recipe_add = function(event)
-        if event.button == defines.mouse_button_type.left then
-          --game.print("roi")
-          self:add_recipe(value)
-          --add the item you just clicked to the constraint list, you probably want to do that   
-          global.system[global.tab-1].constraint[item.name]=0          
-          self:destroy()
-          self:init()
-          --missing
-          --update the constraint list instead
-          --then do the calc
 
-        end
-        if callback then callback(event) end
-      end
-    else
-      row_recipe_add = function(event)
-        if event.button == defines.mouse_button_type.left then
-          --game.print("moi")
-
-          local recipe_list = {}
-          for key,val in pairs(temp) do
-            table.insert(recipe_list,{type="recipe",name=val.name})
+      button = frame.add(
+        self:add_button_event({
+          type="choose-elem-button",elem_type=item.type
+        },function(event)
+          if event.button == defines.mouse_button_type.left then
+            --game.print("roi")
+            self:add_recipe(value)
+            --add the item you just clicked to the constraint list, you probably want to do that   
+            global.system[global.tab-1].constraint[item.name]=0          
+            self:destroy()
+            self:init()
+            --missing
+            --update the constraint list instead
+            --then do the calc
           end
-
-          self:choose_elem_window_bullshit(
-            recipe_list,math.min(math.ceil(math.sqrt(recipes)),20),function (event,name)
-
-              if event.button == defines.mouse_button_type.left then --only add the recipe if I left click
-                self:add_recipe(game.recipe_prototypes[name])
-                global.system[global.tab-1].constraint[item.name]=0
-                
-                self:destroy()
-                self:init()
-              end
-              --missing
-              --update the constraint list instead
-              --then do the calc
-          end)
+          if callback then callback(event) end
         end
-        if callback then callback(event) end
-      end
+        )
+      )
+    else
+      button = frame.add(
+        self:add_button_event({
+          type="choose-elem-button",elem_type=item.type
+        },function(event) 
+          if event.button == defines.mouse_button_type.left then
+            --game.print("moi")
+            self:choose_elem_window_bullshit(
+              recipe_list,math.min(math.ceil(math.sqrt(recipes)),20),function (event,name)
+  
+                if event.button == defines.mouse_button_type.left then --only add the recipe if I left click
+                  self:add_recipe(game.recipe_prototypes[name])
+                  global.system[global.tab-1].constraint[item.name]=0
+                  
+                  self:destroy()
+                  self:init()
+                end
+                --missing
+                --update the constraint list instead
+                --then do the calc
+              end
+            )
+            
+          end
+          if callback then callback(event) end
+        end
+        )
+      )
     end
-
-    button = frame.add(
-      self:add_button_event({
-        type="choose-elem-button",elem_type=item.type
-      },row_recipe_add)
-    )
     --button.elem_filters = filter
+
     button.locked=true
     button.elem_value=item.name
 
     local num_value = button.add({type="label",caption=recipes})
     num_value.ignored_by_interaction=true
     num_value.style.font="count-font"
-    
   end
 
   function gui:add_recipe_row(recipe)
@@ -315,7 +327,6 @@ local function class_gui(event)
 
     --Ax = B 
     --x = B/A
-
 
     for _,item in pairs(recipe.products) do
       self:icon_add_recipe(item,output,
@@ -357,49 +368,7 @@ local function class_gui(event)
         end
       )
     end
-
-    --game.print(type(temp_system_items))
-    --[[
-    for _,item in pairs(recipe.products) do
-      local button
-      button = output.add(
-        self:add_button_event({
-          type="choose-elem-button",elem_type=item.type
-        },function(event)
-          if event.button == defines.mouse_button_type.right then
-            global.system[global.tab-1].recipe[recipe.name]=nil
-            for _,const in pairs(recipe.products) do
-              global.system[global.tab-1].item[const.name]=global.system[global.tab-1].item[const.name]-1
-              if global.system[global.tab-1].item[const.name] == 0 then
-                global.system[global.tab-1].item[const.name] = nil
-                global.system[global.tab-1].constraint[const.name] = nil
-              end
-            end
-
-            for _,const in pairs(recipe.ingredients) do
-              global.system[global.tab-1].item[const.name]=global.system[global.tab-1].item[const.name]-1
-              if global.system[global.tab-1].item[const.name] == 0 then
-                global.system[global.tab-1].item[const.name] = nil
-                global.system[global.tab-1].constraint[const.name] = nil
-              end
-            end
-            output.destroy()
-            input.destroy()
-            factory.destroy()
-            beacon.destroy()
-            x.destroy()
-            
-          elseif event.button == defines.mouse_button_type.left then
-            game.print("LMB OI M8!")
-          end
-        end
-        )
-      )
-      button.elem_value=item.name
-      button.locked=true
-    end
-    --]]
-
+    
     for _,item in pairs(recipe.ingredients) do
       self:icon_add_recipe(item,input,
         {
@@ -415,6 +384,7 @@ local function class_gui(event)
         }
       )
     end
+
     
     local factories = {}
 
@@ -587,24 +557,27 @@ local function class_gui(event)
     recipe_choose_button = input_window.add(
       self:add_choose_event({
         type="choose-elem-button",elem_type="recipe"
-      },function(event)
+      },function (event)
         local recipe_name = recipe_choose_button.elem_value
         if recipe_name then
           --game.print("koi")
           local new_name = "[recipe=" .. recipe_name .. "]"
           global.system[global.tab-1].name = "[font=default-large]" .. new_name .. "[/font]"
           local recipe = game.recipe_prototypes[recipe_name]   
-          self:add_recipe(recipe)
           
+          self:add_recipe(recipe)
+
+
           local prod
 
           for _,p in pairs(recipe.products) do
-            prod = p--I don't know how to get the first item in a table other than this. Bleh.
+            prod = p.name--I don't know how to get the first item in a table other than this. Bleh.
             break
           end
           
-          global.system[global.tab-1].constraint[prod.name]=1--set it to be 1 item per second 
-
+          if prod then 
+            global.system[global.tab-1].constraint[prod]=1--set it to be 1 item per second 
+          end
           
           self:destroy()
           self:init()
@@ -625,7 +598,6 @@ local function class_gui(event)
         mode="or",
         invert=true
       }
-      
     }
 
     self.recipe_table.add({type="sprite",sprite="entity/assembling-machine-1"})
