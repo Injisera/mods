@@ -246,7 +246,7 @@ local function class_gui(event)
     elseif recipes == 1 then--ONLY ONE RECIPE, just add that one! 
       row_recipe_add = function(event)
         if event.button == defines.mouse_button_type.left then
-          game.print("roi")
+          --game.print("roi")
           self:add_recipe(value)
           --add the item you just clicked to the constraint list, you probably want to do that   
           global.system[global.tab-1].constraint[item.name]=0          
@@ -262,7 +262,7 @@ local function class_gui(event)
     else
       row_recipe_add = function(event)
         if event.button == defines.mouse_button_type.left then
-          game.print("moi")
+          --game.print("moi")
 
           local recipe_list = {}
           for key,val in pairs(temp) do
@@ -590,7 +590,7 @@ local function class_gui(event)
       },function(event)
         local recipe_name = recipe_choose_button.elem_value
         if recipe_name then
-          game.print("koi")
+          --game.print("koi")
           local new_name = "[recipe=" .. recipe_name .. "]"
           global.system[global.tab-1].name = "[font=default-large]" .. new_name .. "[/font]"
           local recipe = game.recipe_prototypes[recipe_name]   
