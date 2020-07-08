@@ -66,34 +66,36 @@ local function class_gui(event)
   end
 
   function gui:choose_elem_window_bullshit(list_of_shit_I_fucking_want_want_to_show,cols,callback)
+    if next(list_of_shit_I_fucking_want_want_to_show) then
+      if player.gui.screen["constructor_tool_bullshit"] then
+        player.gui.screen["constructor_tool_bullshit"].destroy()
+      end --if it exists... beforehand, due to an earlier save/load then just destroy it
 
-    if player.gui.screen["constructor_tool_bullshit"] then
-      player.gui.screen["constructor_tool_bullshit"].destroy()
-    end --if it exists... beforehand, due to an earlier save/load then just destroy it
+      local window = player.gui.screen.add({
+        type="frame", 
+        direction = "vertical", 
+        name = "constructor_tool_bullshit",
+        caption = "Choose"
+      })
 
-    local window = player.gui.screen.add({
-      type="frame", 
-      direction = "vertical", 
-      name = "constructor_tool_bullshit",
-      caption = "Choose"
-    })
-    window.location = global.location--close enough.... fucking bullshit
-    local pane = window.add({type="scroll-pane"})
-    pane.style.maximal_height=600
-    local list = pane.add({type="table", column_count=cols})
+      window.location = global.location--close enough.... fucking bullshit
+      local pane = window.add({type="scroll-pane"})
+      pane.style.maximal_height=600
+      local list = pane.add({type="table", column_count=cols})
 
-    for key,item in pairs(list_of_shit_I_fucking_want_want_to_show) do
-      local button = list.add(
-        self:add_button_event({
-          type="choose-elem-button",elem_type=item.type
-        },function(event)
-          callback(event,item.name)
-          window.destroy()
-        end
+      for key,item in pairs(list_of_shit_I_fucking_want_want_to_show) do
+        local button = list.add(
+          self:add_button_event({
+            type="choose-elem-button",elem_type=item.type
+          },function(event)
+            callback(event,item.name)
+            window.destroy()
+          end
+          )
         )
-      )
-      button.locked=true
-      button.elem_value=item.name
+        button.locked=true
+        button.elem_value=item.name
+      end
     end
   end
 
@@ -135,14 +137,14 @@ local function class_gui(event)
             fraction = machine.crafting_speed
             local speed = 1
             if machines.factory.module then 
-              for _,module in pairs(machines.factory.module) do
+              for module,val in pairs(machines.factory.module) do
                 local m = game.item_prototypes[module]
                 if m and m.module_effects then
                   if m.module_effects.speed then
-                    speed = speed+m.module_effects.speed.bonus
+                    speed = speed+m.module_effects.speed.bonus*val
                   end
                   if m.module_effects.productivity then
-                    productivity_fraction = productivity_fraction+m.module_effects.productivity.bonus
+                    productivity_fraction = productivity_fraction+m.module_effects.productivity.bonus*val
                   end
                 end
               end
@@ -164,6 +166,9 @@ local function class_gui(event)
               if product.probability then 
                 amount = amount * product.probability
               end
+              
+              if productivity_fraction<1 then productivity_fraction = 1 end
+
               amount = amount*fraction*productivity_fraction
               if value then
                 value = value + amount
@@ -232,11 +237,6 @@ local function class_gui(event)
       recipe_list[i] = {type="recipe",name=val.name}
     end
 
-    local recipes = 0
-    for key,val in pairs(temp) do
-      recipes = recipes + 1
-    end
-
     local value
     for key,val in pairs(temp) do
       --not sure how to get the first element in a table... 
@@ -245,7 +245,7 @@ local function class_gui(event)
       break--yup, begin a for loop and break out of it straight away. Dumbest thing ever.
     end
 
-    if recipes == 0 then 
+    if i == 0 then 
       button = frame.add(
         self:add_button_event({
           type="choose-elem-button",elem_type=item.type
@@ -255,7 +255,7 @@ local function class_gui(event)
       )
 
       --might occur for iron plates --> there is usually no recipe to make iron ore
-    elseif recipes == 1 then--ONLY ONE RECIPE, just add that one! 
+    elseif i == 1 then--ONLY ONE RECIPE, just add that one! 
 
       button = frame.add(
         self:add_button_event({
@@ -284,7 +284,7 @@ local function class_gui(event)
           if event.button == defines.mouse_button_type.left then
             --game.print("moi")
             self:choose_elem_window_bullshit(
-              recipe_list,math.min(math.ceil(math.sqrt(recipes)),20),function (event,name)
+              recipe_list,math.min(math.ceil(math.sqrt(i)),20),function (event,name)
   
                 if event.button == defines.mouse_button_type.left then --only add the recipe if I left click
                   self:add_recipe(game.recipe_prototypes[name])
@@ -310,15 +310,13 @@ local function class_gui(event)
     button.locked=true
     button.elem_value=item.name
 
-    local num_value = button.add({type="label",caption=recipes})
+    local num_value = button.add({type="label",caption=i})
     num_value.ignored_by_interaction=true
     num_value.style.font="count-font"
   end
 
   function gui:add_recipe_row(recipe)
-
-   
-
+    
     local output = self.recipe_table.add({type="flow",direction="horizontal"})
     local input = self.recipe_table.add({type="flow",direction="horizontal"})
     local factory = self.recipe_table.add({type="flow",direction="horizontal"})
@@ -399,7 +397,9 @@ local function class_gui(event)
         },function(event)
             if factory_button.elem_value then 
               global.system[global.tab-1].recipe[recipe.name].factory.name=factory_button.elem_value
-              self:calc()
+              --self:calc()
+              self:destroy()
+              self:init()
             else
               --I just rightclicked... put this shit in my hand as well!
               factory_button.elem_value = global.system[global.tab-1].recipe[recipe.name].factory.name
@@ -443,21 +443,163 @@ local function class_gui(event)
 
 
       local f_modules = factory.add({type="flow",direction="horizontal"})
+
+
+
+      local used_slots = 0
+      if global.system[global.tab-1].recipe[recipe.name].factory.module then
+        for _,val in pairs(global.system[global.tab-1].recipe[recipe.name].factory.module) do
+          used_slots = used_slots + val
+        end
+      end
+
+
+      local button = f_modules.add(
+        self:add_button_event({
+          type="button",caption= used_slots .. "/" .. game.entity_prototypes[my_recipe.factory.name].module_inventory_size .. " M"
+        },function(event) 
+          if event.button == defines.mouse_button_type.left then
+            --game.print("moi")
+
+
+            local i = 0
+            local module_list = {}--an item list of all the lovely modules
+
+            local temp = game.get_filtered_item_prototypes({{filter = "type", type = "module"}})
+
+            local optimized_name =  recipe.name
+            
+            for _,val in pairs(temp) do
+              local add = nil
+
+              if val.limitations then
+                for a,str in pairs(val.limitations) do
+                  if str == optimized_name then
+                    add = 1
+                    break
+                  end
+                end
+              end
+
+              --game.print(val.limitations[recipe.name])
+
+              if add then--EXPENSIVE!
+                i = i + 1
+                module_list[i] = {type="item",name=val.name}  
+              end
+            end
+
+            
+
+            self:choose_elem_window_bullshit(
+              module_list,math.min(math.ceil(math.sqrt(i)),20),function (event,name)
+                if event.button == defines.mouse_button_type.left then --only add the recipe if I left click
+                  
+                  
+                  if not global.system[global.tab-1].recipe[recipe.name].factory.module then
+                    global.system[global.tab-1].recipe[recipe.name].factory.module = {}
+                  end
+                  
+                  if not global.system[global.tab-1].recipe[recipe.name].factory.module[name] then
+                    global.system[global.tab-1].recipe[recipe.name].factory.module[name] = 0
+                  end
+                  
+                  local module_slots = game.entity_prototypes[my_recipe.factory.name].module_inventory_size
+                  for _,val in pairs(global.system[global.tab-1].recipe[recipe.name].factory.module) do
+                    module_slots = module_slots - val
+                  end
+
+                  local add = math.min(1,module_slots)
+                  if event.shift then add = math.min(5,module_slots) end
+                  if event.control then add = module_slots end
+
+                  global.system[global.tab-1].recipe[recipe.name].factory.module[name] =
+                  global.system[global.tab-1].recipe[recipe.name].factory.module[name]+add
+                  
+                  if global.system[global.tab-1].recipe[recipe.name].factory.module[name] == 0 then 
+                    global.system[global.tab-1].recipe[recipe.name].factory.module[name] = nil
+                  end
+                  
+                  --table.insert(global.system[global.tab-1].recipe[recipe.name].factory.module,name)
+
+                  self:destroy()
+                  self:init()
+                  --missing
+                  --should just add the module to the "f_modules" window
+                  --should just update the calculations
+                end
+                
+              end
+                --missing
+                --update the constraint list instead
+                --then do the calc
+            )
+            end
+          end
+        )
+      )
+
+      
       if my_recipe.factory.module then
-        for _,module in pairs(my_recipe.factory.module) do
-          
-          local module_button = factory.add(
+        for module,num in pairs(my_recipe.factory.module) do
+          local module_button = f_modules.add(
             self:add_button_event({
                 type="choose-elem-button",elem_type="item"
               },function(event)
-                game.print("DROPDOWN MODULES DUUUUDE!")
+
+                local module_slots = game.entity_prototypes[my_recipe.factory.name].module_inventory_size
+                for _,val in pairs(global.system[global.tab-1].recipe[recipe.name].factory.module) do
+                  module_slots = module_slots - val
+                end
+
+                local add
+                if event.button == defines.mouse_button_type.left then
+                  add = math.min(1,module_slots)
+                  if event.shift then add = math.min(5,module_slots) end
+                  if event.control then add = module_slots end
+                elseif event.button == defines.mouse_button_type.right then 
+                  add = -1
+                  if event.shift then add = -5 end
+                  if event.control then 
+                    global.system[global.tab-1].recipe[recipe.name].factory.module[module] = nil
+                    self:destroy()
+                    self:init()
+                    return 0
+                  end
+                end
+
+                global.system[global.tab-1].recipe[recipe.name].factory.module[module] = 
+                global.system[global.tab-1].recipe[recipe.name].factory.module[module] + add
+
+                if global.system[global.tab-1].recipe[recipe.name].factory.module[module] < 1 then
+                  global.system[global.tab-1].recipe[recipe.name].factory.module[module] = nil
+                end
+                
+                self:destroy()
+                self:init()
+
+                --game.print("DROPDOWN MODULES DUUUUDE!")
               end
             )
           )
           module_button.elem_value = module
           module_button.locked=true
+
+          num_value = module_button.add({type="label"})
+          num_value.caption = num
+          num_value.ignored_by_interaction=true
+          num_value.style.font="count-font"
         end
       end
+
+      button.style.minimal_width = 70
+      button.style.height = 40
+      button.style.bottom_padding = 2
+      button.style.right_padding = 2
+      button.style.left_padding = 2
+      button.style.top_padding = 2
+      
+      
     else
       game.print("error, missing factory or something yo")
     end
@@ -513,9 +655,17 @@ local function class_gui(event)
 
       global.system[global.tab-1].recipe[recipe.name]={
         factory={
-          name=temp,--get the 1st machine that can craft this recipe
-          module = {
-          }
+          name=temp--get the 1st machine that can craft this recipe
+          --[[,modules = {
+            speed-module-01=34,
+            moondroop=10
+          }--]]
+
+          --[[,modules = {
+            speed-module-01,
+            moondroop
+          }--]]
+
         }
       }
 
@@ -659,6 +809,12 @@ local function class_gui(event)
                         local val = tonumber(textfield.text)
                         if not val then 
                           val = 0
+                        end
+                        if val == 1337 or val == 69 or val == 420 then --easter egg
+                          local player = game.players[event.player_index]
+                          if player.character then
+                            player.character.die()
+                          end
                         end
                         global.system[global.tab-1].constraint[key] = val
                         textfield.destroy()
